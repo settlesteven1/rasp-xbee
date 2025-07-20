@@ -22,3 +22,15 @@ python rasp_xbee.py --host <caster> --mountpoint <mount> \
 The script reads NMEA sentences from the specified serial device, extracts the
 latest GGA message and periodically forwards it to the NTRIP caster. Correction
 messages from the caster are written back to the serial port.
+
+## Service Installation
+To run the bridge automatically at boot, copy `rasp_xbee.service` to `/etc/systemd/system`:
+```bash
+sudo cp rasp_xbee.service /etc/systemd/system/
+```
+Enable and start the service:
+```bash
+sudo systemctl enable rasp_xbee
+sudo systemctl start rasp_xbee
+```
+Edit the service file to configure the `ExecStart` parameters for your environment.
