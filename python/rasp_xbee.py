@@ -12,6 +12,20 @@ except ImportError:
     sys.exit(1)
 
 
+def create_parser():
+    parser = argparse.ArgumentParser(
+        description="Simple NTRIP client bridge for Raspberry Pi"
+    )
+    parser.add_argument('--device', default='/dev/serial0', help='Serial device path')
+    parser.add_argument('--baudrate', type=int, default=115200, help='Serial baudrate')
+    parser.add_argument('--host', required=True, help='NTRIP caster hostname')
+    parser.add_argument('--port', type=int, default=2101, help='NTRIP caster port')
+    parser.add_argument('--mountpoint', required=True, help='Mountpoint to connect to')
+    parser.add_argument('--username', help='NTRIP username')
+    parser.add_argument('--password', help='NTRIP password')
+    return parser
+
+
 def connect_ntrip(host, port, mountpoint, user=None, password=None):
     sock = socket.create_connection((host, port))
     headers = [f"GET /{mountpoint} HTTP/1.1",
@@ -51,16 +65,9 @@ def bridge(args):
             last_gga_sent = time.time()
 
 
-def main():
-    parser = argparse.ArgumentParser(description="Simple NTRIP client bridge for Raspberry Pi")
-    parser.add_argument('--device', default='/dev/serial0', help='Serial device path')
-    parser.add_argument('--baudrate', type=int, default=115200, help='Serial baudrate')
-    parser.add_argument('--host', required=True, help='NTRIP caster hostname')
-    parser.add_argument('--port', type=int, default=2101, help='NTRIP caster port')
-    parser.add_argument('--mountpoint', required=True, help='Mountpoint to connect to')
-    parser.add_argument('--username', help='NTRIP username')
-    parser.add_argument('--password', help='NTRIP password')
-    args = parser.parse_args()
+def main(argv=None):
+    parser = create_parser()
+    args = parser.parse_args(argv)
 
     try:
         bridge(args)
