@@ -1,0 +1,13 @@
+[Unit]
+Description=Raspberry Pi NTRIP bridge
+After=network.target
+
+[Service]
+Type=simple
+User=pi
+WorkingDirectory=/home/pi/rasp-xbee/python
+ExecStart=/usr/bin/python3 rasp_xbee.py --host <caster> --mountpoint <mount> --username <user> --password <pass>
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
