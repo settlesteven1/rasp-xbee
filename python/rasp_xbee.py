@@ -1,5 +1,6 @@
 import argparse
 import base64
+import logging
 import select
 import socket
 import sys
@@ -13,6 +14,7 @@ except ImportError:
 
 
 def connect_ntrip(host, port, mountpoint, user=None, password=None):
+    logging.info("Connecting to %s:%s/%s", host, port, mountpoint)
     sock = socket.create_connection((host, port))
     headers = [f"GET /{mountpoint} HTTP/1.1",
                "User-Agent: rasp-xbee-py",]
@@ -25,30 +27,54 @@ def connect_ntrip(host, port, mountpoint, user=None, password=None):
     resp = sock.recv(1024)
     if b"200" not in resp:
         raise RuntimeError(f"Bad response from caster: {resp.splitlines()[0].decode(errors='ignore')}")
+    logging.info("Connected to caster")
     return sock
 
 
 def bridge(args):
-    ser = serial.Serial(args.device, args.baudrate, timeout=0)
-    sock = connect_ntrip(args.host, args.port, args.mountpoint, args.username, args.password)
-    latest_gga = b""
-    last_gga_sent = 0.0
     while True:
-        r, _, _ = select.select([ser, sock], [], [], 1.0)
-        if ser in r:
-            data = ser.read(1024)
-            if data:
-                if data.startswith(b"$GPGGA") or data.startswith(b"$GNGGA"):
-                    latest_gga = data.strip() + b"\r\n"
-                # forward all serial data to socket? Not required except GGA
-        if sock in r:
-            data = sock.recv(1024)
-            if not data:
-                raise RuntimeError("Caster disconnected")
-            ser.write(data)
-        if latest_gga and time.time() - last_gga_sent > 15:
-            sock.sendall(latest_gga)
-            last_gga_sent = time.time()
+        ser = None
+        sock = None
+        try:
+            ser = serial.Serial(args.device, args.baudrate, timeout=0)
+            logging.info("Opened serial port %s at %d", args.device, args.baudrate)
+            sock = connect_ntrip(args.host, args.port, args.mountpoint, args.username, args.password)
+            latest_gga = b""
+            last_gga_sent = 0.0
+            while True:
+                r, _, _ = select.select([ser, sock], [], [], 1.0)
+                if ser in r:
+                    data = ser.read(1024)
+                    if data:
+                        if data.startswith(b"$GPGGA") or data.startswith(b"$GNGGA"):
+                            latest_gga = data.strip() + b"\r\n"
+                        # forward all serial data to socket? Not required except GGA
+                if sock in r:
+                    data = sock.recv(1024)
+                    if not data:
+                        raise RuntimeError("Caster disconnected")
+                    ser.write(data)
+                if latest_gga and time.time() - last_gga_sent > 15:
+                    sock.sendall(latest_gga)
+                    last_gga_sent = time.time()
+        except KeyboardInterrupt:
+            logging.info("Stopping bridge")
+            break
+        except Exception as e:
+            logging.warning("Bridge error: %s", e)
+        finally:
+            if sock:
+                try:
+                    sock.close()
+                except Exception:
+                    pass
+            if ser:
+                try:
+                    ser.close()
+                except Exception:
+                    pass
+        logging.info("Reconnecting in 5 seconds...")
+        time.sleep(5)
 
 
 def main():
@@ -61,6 +87,8 @@ def main():
     parser.add_argument('--username', help='NTRIP username')
     parser.add_argument('--password', help='NTRIP password')
     args = parser.parse_args()
+
+    logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s: %(message)s')
 
     try:
         bridge(args)

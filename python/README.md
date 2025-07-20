@@ -22,3 +22,4 @@ python rasp_xbee.py --host <caster> --mountpoint <mount> \
 The script reads NMEA sentences from the specified serial device, extracts the
 latest GGA message and periodically forwards it to the NTRIP caster. Correction
 messages from the caster are written back to the serial port.
+If either the serial or network connection is lost, the script will log the error and automatically attempt to reconnect.
