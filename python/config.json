@@ -1,0 +1,9 @@
+{
+    "device": "/dev/serial0",
+    "baudrate": 115200,
+    "host": "",
+    "port": 2101,
+    "mountpoint": "",
+    "username": "",
+    "password": ""
+}

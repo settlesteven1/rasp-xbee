@@ -7,8 +7,9 @@ port and an NTRIP caster. It was designed for running on a Raspberry Pi 4.
 ## Requirements
 * Python 3.7+
 * `pyserial`
+* `flask`
 
-Install the dependency:
+Install the dependencies:
 ```bash
 pip install -r requirements.txt
 ```
@@ -22,3 +23,12 @@ python rasp_xbee.py --host <caster> --mountpoint <mount> \
 The script reads NMEA sentences from the specified serial device, extracts the
 latest GGA message and periodically forwards it to the NTRIP caster. Correction
 messages from the caster are written back to the serial port.
+
+## Web UI
+A small Flask-based web interface is provided in `webui.py` for editing the
+configuration and viewing the connection status.
+Run it with:
+```bash
+python webui.py
+```
+It listens on port 5000 by default.
