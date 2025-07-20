@@ -20,3 +20,8 @@ If you are experiencing problems with the firmware, please see the [Reporting Cr
 
 ## Pinout
 [![Pinout diagram](https://i.imgur.com/mjqNXxb.png)](https://github.com/nebkat/esp32-xbee/wiki/Pinout)
+
+## Raspberry Pi Python Port
+A minimal Python implementation is available in the `python` directory for running the bridge on a Raspberry Pi 4.
+See [python/README.md](python/README.md) for usage.
+
