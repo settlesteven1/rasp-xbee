@@ -5,6 +5,8 @@ import socket
 import sys
 import time
 
+from config import load_config
+
 try:
     import serial
 except ImportError:
@@ -52,14 +54,22 @@ def bridge(args):
 
 
 def main():
+    defaults = load_config()
+
+    def get_int(key, fallback):
+        try:
+            return int(defaults.get(key, fallback))
+        except (TypeError, ValueError):
+            return fallback
+
     parser = argparse.ArgumentParser(description="Simple NTRIP client bridge for Raspberry Pi")
-    parser.add_argument('--device', default='/dev/serial0', help='Serial device path')
-    parser.add_argument('--baudrate', type=int, default=115200, help='Serial baudrate')
-    parser.add_argument('--host', required=True, help='NTRIP caster hostname')
-    parser.add_argument('--port', type=int, default=2101, help='NTRIP caster port')
-    parser.add_argument('--mountpoint', required=True, help='Mountpoint to connect to')
-    parser.add_argument('--username', help='NTRIP username')
-    parser.add_argument('--password', help='NTRIP password')
+    parser.add_argument('--device', default=defaults.get('device', '/dev/serial0'), help='Serial device path')
+    parser.add_argument('--baudrate', type=int, default=get_int('baudrate', 115200), help='Serial baudrate')
+    parser.add_argument('--host', default=defaults.get('host'), required='host' not in defaults, help='NTRIP caster hostname')
+    parser.add_argument('--port', type=int, default=get_int('port', 2101), help='NTRIP caster port')
+    parser.add_argument('--mountpoint', default=defaults.get('mountpoint'), required='mountpoint' not in defaults, help='Mountpoint to connect to')
+    parser.add_argument('--username', default=defaults.get('username'), help='NTRIP username')
+    parser.add_argument('--password', default=defaults.get('password'), help='NTRIP password')
     args = parser.parse_args()
 
     try:
