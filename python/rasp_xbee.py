@@ -5,6 +5,9 @@ import socket
 import sys
 import time
 
+import socket_client
+import socket_server
+
 try:
     import serial
 except ImportError:
@@ -28,8 +31,7 @@ def connect_ntrip(host, port, mountpoint, user=None, password=None):
     return sock
 
 
-def bridge(args):
-    ser = serial.Serial(args.device, args.baudrate, timeout=0)
+def run_ntrip(ser, args):
     sock = connect_ntrip(args.host, args.port, args.mountpoint, args.username, args.password)
     latest_gga = b""
     last_gga_sent = 0.0
@@ -52,18 +54,40 @@ def bridge(args):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Simple NTRIP client bridge for Raspberry Pi")
+    parser = argparse.ArgumentParser(description="Serial bridge utilities")
     parser.add_argument('--device', default='/dev/serial0', help='Serial device path')
     parser.add_argument('--baudrate', type=int, default=115200, help='Serial baudrate')
-    parser.add_argument('--host', required=True, help='NTRIP caster hostname')
-    parser.add_argument('--port', type=int, default=2101, help='NTRIP caster port')
-    parser.add_argument('--mountpoint', required=True, help='Mountpoint to connect to')
-    parser.add_argument('--username', help='NTRIP username')
-    parser.add_argument('--password', help='NTRIP password')
+
+    sub = parser.add_subparsers(dest='mode', required=True)
+
+    ntrip = sub.add_parser('ntrip', help='Run NTRIP client')
+    ntrip.add_argument('--host', required=True, help='NTRIP caster hostname')
+    ntrip.add_argument('--port', type=int, default=2101, help='NTRIP caster port')
+    ntrip.add_argument('--mountpoint', required=True, help='Mountpoint to connect to')
+    ntrip.add_argument('--username', help='NTRIP username')
+    ntrip.add_argument('--password', help='NTRIP password')
+
+    server = sub.add_parser('server', help='Start socket server bridge')
+    server.add_argument('--tcp-port', type=int, default=23, help='TCP listen port')
+    server.add_argument('--udp-port', type=int, default=2323, help='UDP listen port')
+
+    client = sub.add_parser('client', help='Start socket client bridge')
+    client.add_argument('--host', required=True, help='Server hostname')
+    client.add_argument('--port', type=int, required=True, help='Server port')
+    client.add_argument('--udp', action='store_true', help='Use UDP instead of TCP')
+    client.add_argument('--connect-message', help='Message sent after connecting')
+
     args = parser.parse_args()
 
+    ser = serial.Serial(args.device, args.baudrate, timeout=0)
+
     try:
-        bridge(args)
+        if args.mode == 'ntrip':
+            run_ntrip(ser, args)
+        elif args.mode == 'server':
+            socket_server.run_server(ser, args.tcp_port, args.udp_port)
+        else:
+            socket_client.run_client(ser, args.host, args.port, args.udp, args.connect_message)
     except KeyboardInterrupt:
         pass
 
