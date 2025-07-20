@@ -5,6 +5,9 @@ import socket
 import sys
 import time
 
+from ntrip_server import run_server
+from ntrip_caster import run_caster
+
 try:
     import serial
 except ImportError:
@@ -52,18 +55,32 @@ def bridge(args):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Simple NTRIP client bridge for Raspberry Pi")
+    parser = argparse.ArgumentParser(description="NTRIP utility for Raspberry Pi")
     parser.add_argument('--device', default='/dev/serial0', help='Serial device path')
     parser.add_argument('--baudrate', type=int, default=115200, help='Serial baudrate')
-    parser.add_argument('--host', required=True, help='NTRIP caster hostname')
-    parser.add_argument('--port', type=int, default=2101, help='NTRIP caster port')
-    parser.add_argument('--mountpoint', required=True, help='Mountpoint to connect to')
+    parser.add_argument('--mode', choices=['client', 'server', 'caster'], default='client',
+                        help='Operating mode')
+
+    # client options
+    parser.add_argument('--host', help='NTRIP caster hostname')
+    parser.add_argument('--port', type=int, default=2101, help='TCP port')
+    parser.add_argument('--mountpoint', help='NTRIP mountpoint')
     parser.add_argument('--username', help='NTRIP username')
     parser.add_argument('--password', help='NTRIP password')
+    parser.add_argument('--bind', default='0.0.0.0', help='Bind address for server/caster modes')
+
+
     args = parser.parse_args()
 
     try:
-        bridge(args)
+        if args.mode == 'client':
+            if not (args.host and args.mountpoint):
+                parser.error('client mode requires --host and --mountpoint')
+            bridge(args)
+        elif args.mode == 'server':
+            run_server(args)
+        else:
+            run_caster(args)
     except KeyboardInterrupt:
         pass
 
